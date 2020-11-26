@@ -1,0 +1,59 @@
+�defVar --name dtConfigSettings --type DataTable
+defVar --name Init_excelConfig --type Excel
+defVar --name Init_strConfigTabSettings --type String --value Settings
+defVar --name GLOBAL_dcConfig --type StringDictionary --innertype String
+defVar --name Init_intConfigSettingsLine --type Numeric --value 1
+defVar --name Init_strConfigSettingsName --type String --value Name
+defVar --name Init_strConfigSettingsValue --type String --value Value
+defVar --name Init_strConfigOutputName --type String
+defVar --name Init_strConfigOutputValue --type String --value Value
+defVar --name Init_intLoopTable --type Numeric
+defVar --name Init_intLoopCount --type Numeric --value 1
+defVar --name GLOBAL_strState --type String
+defVar --name Init_excelInputControl --type Excel
+defVar --name dtTransactions --type DataTable
+goSub --label Init
+if --left "${GLOBAL_dcConfig.Count}" --operator "Equal_To" --right 0 --negate 
+	goSub --label GetData
+endIf
+if --left "${dtTransactions.IsEmpty}" --operator "Is_Empty" --negate 
+	while --left "${GLOBAL_strState}" --operator "Equal_To" --right EndProcess --negate 
+		if --left "${GLOBAL_strState}" --operator "Equal_To" --right Transaction
+			goSub --label Transaction
+		else
+			goSub --label ErrorHandler
+		endIf
+	endWhile
+endIf
+goSub --label EndProcess
+beginSub --name Init
+logMessage --message "Executing Init" --type "Info"
+excelOpen --file "C:\\Users\\Convex\\Documents\\DGT\\Bluke\\CreditarVales\\Data\\Config.xlsx" Init_excelConfig=value
+excelGetTable --file ${Init_excelConfig} --sheet "${Init_strConfigTabSettings}" --entiretable  --hasheaders  dtConfigSettings=value
+excelClose --file ${Init_excelConfig}
+setVar --name "${Init_intLoopTable}" --value "${dtConfigSettings.Rows}"
+while --left "${Init_intLoopCount}" --operator "Less_Than_Equal_To" --right "${Init_intLoopTable}"
+	setVar --name "${Init_intConfigSettingsLine}" --value "${Init_intLoopCount}"
+	mapTableRow --dataTable ${dtConfigSettings} --row ${Init_intConfigSettingsLine} --mappings "name=${Init_strConfigSettingsName}=${Init_strConfigOutputName},name=${Init_strConfigSettingsValue}=${Init_strConfigOutputValue}"
+	strDictAdd --key "${Init_strConfigOutputName}" --value "${Init_strConfigOutputValue}" --dictionary ${GLOBAL_dcConfig}
+	incrementVar --number ${Init_intLoopCount}
+endWhile
+setVar --name "${GLOBAL_strState}" --value GetData
+endSub
+beginSub --name GetData
+logMessage --message "Executing Get Data" --type "Info"
+readCSV --filepath "C:\\Users\\Convex\\Documents\\DGT\\Bluke\\CreditarVales\\Data\\Input\\InputControl.csv" --delimiter "," --hasheaders  --encoding "UTF8" --missingfieldaction "ParseError" dtTransactions=value
+setVar --name "${GLOBAL_strState}" --value Transaction
+endSub
+beginSub --name Transaction
+logMessage --message "Executing Transaction" --type "Info"
+setVar --name "${GLOBAL_strState}" --value ErrorHandler
+endSub
+beginSub --name ErrorHandler
+logMessage --message "Executing Error Handler" --type "Info"
+setVar --name "${GLOBAL_strState}" --value EndProcess
+endSub
+beginSub --name EndProcess
+logMessage --message "Executing End Process" --type "Info"
+logMessage --message "Execution Concluded Successfully" --type "Info"
+endSub*	20.10.4.0
